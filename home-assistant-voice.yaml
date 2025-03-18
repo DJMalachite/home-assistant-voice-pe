@@ -516,7 +516,8 @@ binary_sensor:
       - delay: 800ms
       - lambda: id(jack_unplugged_recently) = false;
       - script.execute: control_leds
-
+e131:
+  method: multicast # default: register E1.31 to Multicast group
 light:
   # Hardware LED ring. Not used because remapping needed
   - platform: esp32_rmt_led_strip
@@ -544,6 +545,10 @@ light:
         from: 0
         to: 6
     effects:
+      - e131:
+          universe: 1
+          channels: RGB
+    
       - addressable_lambda:
           name: "Waiting for Command"
           update_interval: 100ms
