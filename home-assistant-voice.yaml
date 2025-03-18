@@ -911,6 +911,11 @@ light:
       - id: leds_internal
         from: 0
         to: 6
+      effects:
+        - e131:
+          universe: 1
+          channels: RGB
+      
 
 power_supply:
   - id: led_power
