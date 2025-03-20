@@ -1538,7 +1538,7 @@ voice_kit:
 external_components:
   - source:
       type: git
-      url: https://github.com/esphome/home-assistant-voice-pe
+      url: https://github.com/DJMalachite/home-assistant-voice-pe
       ref: dev
     components:
       - micro_wake_word
