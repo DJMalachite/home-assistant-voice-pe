@@ -1564,10 +1564,10 @@ media_player:
         file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/easter_egg_tick.mp3
       - id: easter_egg_tada_sound
         file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/easter_egg_tada.mp3
+      - id: error_cloud_expired
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/error_cloud_expired.mp3
       - id: not_recognized
         file: https://github.com/DJMalachite/home-assistant-voice-pe/raw/dev/sounds/bt_7274_984_voice_command_not_recognized.flac
-
-
 
 voice_kit:
   id: voice_kit_component
