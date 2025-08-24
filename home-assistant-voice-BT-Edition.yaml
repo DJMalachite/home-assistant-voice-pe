@@ -1611,8 +1611,8 @@ micro_wake_word:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
       id: stop
       internal: true
-    - model: https://raw.githubusercontent.com/DJMalachite/home-assistant-voice-pe/refs/heads/dev/wakemodels/okay_b_t/okay_b_t.json
-      id: okay_b_t
+    #- model: https://raw.githubusercontent.com/DJMalachite/home-assistant-voice-pe/refs/heads/dev/wakemodels/okay_b_t/okay_b_t.json
+    #  id: okay_b_t
   vad:
   on_wake_word_detected:
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
