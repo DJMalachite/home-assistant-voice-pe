@@ -1,0 +1,125 @@
+name: Sync BT Edition with upstream
+
+on:
+  schedule:
+    - cron: "23 5 * * *"  # daily, 05:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-bt-edition
+  cancel-in-progress: false
+
+env:
+  SYNC_BRANCH: bt-edition-sync
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dev
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          ref: dev
+          fetch-depth: 0
+
+      - name: Three-way merge upstream into BT Edition
+        id: merge
+        run: bash .github/scripts/sync-bt-edition.sh
+
+      - name: Skip if an open sync PR already has this exact result
+        id: existing
+        if: steps.merge.outputs.status == 'clean' || steps.merge.outputs.status == 'conflict'
+        run: |
+          skip=false
+          if git fetch --quiet origin "$SYNC_BRANCH" 2>/dev/null \
+             && git diff --quiet FETCH_HEAD -- home-assistant-voice-BT-Edition.yaml .github/bt-edition-base; then
+            skip=true
+            echo "Sync branch already contains this merge - nothing to do."
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+
+      - name: Work out ESPHome version upstream builds with
+        id: ver
+        if: steps.existing.outputs.skip == 'false'
+        run: |
+          v="$(git show "${{ steps.merge.outputs.new }}:.github/workflows/build.yml" \
+                | grep -oP 'esphome-version:\s*\K[0-9][0-9.]*' | head -1 || true)"
+          [ -n "$v" ] || v="$(grep -oP 'min_version:\s*\K[0-9][0-9.]*' home-assistant-voice-BT-Edition.yaml | head -1)"
+          echo "esphome=$v" >> "$GITHUB_OUTPUT"
+          echo "ESPHome $v"
+
+      - name: Set up Python
+        if: steps.existing.outputs.skip == 'false' && steps.merge.outputs.status == 'clean'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Cache PlatformIO
+        if: steps.existing.outputs.skip == 'false' && steps.merge.outputs.status == 'clean'
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ steps.ver.outputs.esphome }}
+
+      - name: Compile merged BT Edition
+        id: validate
+        if: steps.existing.outputs.skip == 'false' && steps.merge.outputs.status == 'clean'
+        continue-on-error: true
+        run: |
+          pip install "esphome==${{ steps.ver.outputs.esphome }}"
+          bash .github/scripts/validate-bt-edition.sh compile
+
+      - name: Open or update pull request
+        if: steps.existing.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OLD: ${{ steps.merge.outputs.old }}
+          NEW: ${{ steps.merge.outputs.new }}
+          STATUS: ${{ steps.merge.outputs.status }}
+          CONFLICTS: ${{ steps.merge.outputs.conflicts }}
+          BUILD: ${{ steps.validate.outcome }}
+          ESPHOME: ${{ steps.ver.outputs.esphome }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$SYNC_BRANCH"
+          git add home-assistant-voice-BT-Edition.yaml .github/bt-edition-base
+          git commit -m "Merge upstream ${NEW:0:7} into BT Edition" \
+                     -m "Three-way merge of esphome/home-assistant-voice-pe home-assistant-voice.yaml ${OLD:0:7}..${NEW:0:7}"
+          git push --force origin "$SYNC_BRANCH"
+
+          draft=false
+          if [ "$STATUS" = "conflict" ]; then
+            result=":warning: **$CONFLICTS conflict(s)** — search the file for \`<<<<<<< BT Edition\` and resolve before merging. Not compiled."
+            draft=true
+          elif [ "$BUILD" = "success" ]; then
+            result=":white_check_mark: Clean merge, and the BT Edition **compiles** with ESPHome $ESPHOME."
+          else
+            result=":x: Clean text merge, but **compile failed** with ESPHome $ESPHOME — see the workflow log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            draft=true
+          fi
+
+          body="$(cat <<EOF
+          Automated three-way merge of upstream \`home-assistant-voice.yaml\` into \`home-assistant-voice-BT-Edition.yaml\`.
+
+          Upstream range: https://github.com/esphome/home-assistant-voice-pe/compare/${OLD}...${NEW}
+
+          $result
+
+          Merging this PR also advances \`.github/bt-edition-base\` to \`${NEW:0:7}\`, so the next sync only picks up newer upstream changes.
+          EOF
+          )"
+
+          pr="$(gh pr list --head "$SYNC_BRANCH" --base dev --state open --json number -q '.[0].number // empty')"
+          if [ -z "$pr" ]; then
+            args=(--base dev --head "$SYNC_BRANCH" --title "Sync BT Edition with upstream ${NEW:0:7}" --body "$body")
+            [ "$draft" = true ] && args+=(--draft)
+            gh pr create "${args[@]}"
+          else
+            gh pr edit "$pr" --title "Sync BT Edition with upstream ${NEW:0:7}" --body "$body"
+            if [ "$draft" = true ]; then gh pr ready "$pr" --undo || true; else gh pr ready "$pr" || true; fi
+          fi
