@@ -188,6 +188,9 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+e131:
+  method: unicast  # default: register E1.31 to Multicast group
+
 switch:
   # This is the master mute switch. It is exposed to Home Assistant. The user can only turn it on and off if the hardware switch is off. (The hardware switch overrides the software one)
   - platform: template
@@ -613,7 +616,7 @@ light:
       - e131:
           universe: 1
           channels: RGB
-    
+
       - addressable_lambda:
           name: "Waiting for Command"
           update_interval: 100ms
@@ -989,11 +992,10 @@ light:
       - id: leds_internal
         from: 0
         to: 6
-      effects:
-        - e131:
+    effects:
+      - e131:
           universe: 1
           channels: RGB
-      
 
 power_supply:
   - id: led_power

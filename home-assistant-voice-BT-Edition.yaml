@@ -190,7 +190,7 @@ globals:
     initial_value: 'false'
 
 e131:
-  method: unicast # default: register E1.31 to Multicast group
+  method: unicast  # default: register E1.31 to Multicast group
 
 switch:
   # This is the master mute switch. It is exposed to Home Assistant. The user can only turn it on and off if the hardware switch is off. (The hardware switch overrides the software one)
@@ -618,7 +618,7 @@ light:
           name: "E1.31"
           universe: 1
           channels: RGB
-    
+
       - addressable_lambda:
           name: "Waiting for Command"
           update_interval: 100ms
@@ -1251,7 +1251,6 @@ script:
           id: play_sound
           priority: true
           sound_file: "not_recognized"
-          
 
   # Script executed when the voice assistant is muted or silent
   # The LED next to the 2 microphones turn red / one red LED next to the speaker grill
