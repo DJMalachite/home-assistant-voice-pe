@@ -578,6 +578,7 @@ binary_sensor:
       - delay: 800ms
       - lambda: id(jack_unplugged_recently) = false;
       - script.execute: control_leds
+
 light:
   # Hardware LED ring. Not used because remapping needed
   - platform: esp32_rmt_led_strip
@@ -610,10 +611,6 @@ light:
         from: 0
         to: 6
     effects:
-      - e131:
-          universe: 1
-          channels: RGB
-    
       - addressable_lambda:
           name: "Waiting for Command"
           update_interval: 100ms
@@ -989,11 +986,6 @@ light:
       - id: leds_internal
         from: 0
         to: 6
-      effects:
-        - e131:
-          universe: 1
-          channels: RGB
-      
 
 power_supply:
   - id: led_power
